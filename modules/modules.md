@@ -277,6 +277,280 @@ define(['dataService', 'jquery'], function(dataService, $) {
 ```
 
 ### 总结
- 通过两者的比较，可以得出AMD模块定义的方法非常清晰，不会污染全局环境，能够清楚地显示依赖关系。AMD模式可以用于浏览器环境，并且允许非同步加载模块，也可以根据需要动态加载模块。
+ 通过两者的比较，可以得出AMD模块定义的方法非常清晰，不会污染全局环境，能够清楚地显示依赖关系。AMD模式可以用于浏览器环境，
+ 并且允许非同步加载模块，也可以根据需要动态加载模块。
 
 
+
+# CMD实现
+
+## 概念
+    CMD规范专门用于浏览器端，模块的加载是异步的，模块使用时才会加载执行，CMD规范整合CJS和AMD的规范特点
+    在sea.js中所以JS模块都遵循CMD模块定义规范。
+
+
+## 语法
+   ``` js
+
+        //定义没有依赖的模块
+        define(function(require, exports, module){
+                exports.xxx = value
+                module.exports = value
+        })
+
+        //定义有依赖的模块
+        define(function(require, exports, module){
+                //引入依赖模块(同步)
+                var module2 = require('./module2')
+                //引入依赖模块(异步)
+                require.async('./module3', function (m3) {
+                })
+                //暴露模块
+                exports.xxx = value
+        })
+
+        // 引入使用的模块
+        define(function (require) {
+                var m1 = require('./module1')
+                var m4 = require('./module4')
+                m1.show()
+                m4.show()
+        })
+
+```
+## CMD实现
+
+        1. 下载sea.js, 并引入
+                ● 官网: http://seajs.org/
+                ● github : https://github.com/seajs/seajs
+        然后将sea.js导入项目：js/libs/sea.js
+        2. 创建项目结构
+``` js
+|-js
+  |-libs
+    |-sea.js
+  |-modules
+    |-module1.js
+    |-module2.js
+    |-module3.js
+    |-module4.js
+    |-main.js
+|-index.html
+```
+        3. 定义sea.js 的模块代码
+``` js
+        // module1.js文件
+        define(function (require, exports, module) {
+                //内部变量数据
+                var data = 'xianzao.com'
+                //内部函数
+                function show() {
+                console.log('module1 show() ' + data)
+                }
+                //向外暴露
+                exports.show = show
+        })
+
+        // module2.js文件
+        define(function (require, exports, module) {
+                module.exports = {
+                msg: 'I am xianzao'
+                }
+        })
+
+        // module3.js文件
+        define(function(require, exports, module) {
+                const API_KEY = 'abc123'
+                exports.API_KEY = API_KEY
+        })
+
+        // module4.js文件
+        define(function (require, exports, module) {
+                //引入依赖模块(同步)
+                var module2 = require('./module2')
+                function show() {
+                console.log('module4 show() ' + module2.msg)
+        }
+        exports.show = show
+        //引入依赖模块(异步)
+                require.async('./module3', function (m3) {
+                console.log('异步引入依赖模块3  ' + m3.API_KEY)
+                })
+        })
+
+        // main.js文件
+        define(function (require) {
+                var m1 = require('./module1')
+                var m4 = require('./module4')
+                m1.show()
+                m4.show()
+        })
+
+```
+        4. 在index.html引入
+```html
+        <script type="text/javascript" src="js/libs/sea.js"></script>
+        <script type="text/javascript">
+                seajs.use('./js/modules/main')
+        </script>
+```
+        最后结果得到
+```js
+        module1 show(), xianzao
+        module4 show() I am xianzao
+        异步引入依赖模块3 abc123
+```
+### AMD&CMD 区别
+
+```js
+// CMD
+        define(function (requie, exports, module) {
+        //依赖就近书写
+                var module1 = require('Module1');
+                var result1 = module1.exec();
+                module.exports = {
+                        result1: result1,
+                }
+        });
+
+        // AMD
+        define(['Module1'], function (module1) {
+                var result1 = module1.exec();
+                return {
+                        result1: result1,
+                }
+        });
+```
+        在上述的代码 => AMD&CMD 的区别
+                1. 对依赖的处理
+                        ·AMD - 依赖前置，即通过依赖数组的方式提前声明当前模块的依赖
+                        ·CMD - 依赖就近，在编写期间需要用到的时候通过require方法动态引入；
+                2.在本模块的对外输出
+                        ·AMD - 通过返回值的方式对外输出
+                        ·CMD - 通过给module.exports 赋值的方式对外输出；
+
+
+# ES6模块化
+
+## 概念
+ES6 模块的设计思想是尽量的静态化，使得编译时确定模块依赖关系，以及输入和输出的变量。CJS和AMD 模块都是只能在运行时
+确定这些东西，eg:CJS 模块就是对象，输入时必须查找对象属性。
+
+## 基本使用
+export命令用于规定模块的对外接口，import命令用于输入其他模块提供的功能
+```js
+/** 定义模块 math.js **/
+var basicNum = 0;
+var add = function (a, b) {
+    return a + b;
+};
+export { basicNum, add };
+/** 引用模块 **/
+import { basicNum, add } from './math';
+function test(ele) {
+    ele.textContent = add(99 + basicNum);
+```
+使用import命令的时候，用户需要知道所需加载的变量或者函数名，否则无法加载，为了给用户提供方便，
+使用export default 命令，为模块指定默认输出。
+
+```js
+// export-default.js
+export default function () {
+  console.log('foo');
+}
+
+// import-default.js
+import customName from './export-default';
+customName(); // 'foo'
+```
+模块为默认导出，其他加载该模块时，import命令可为该匿名函数指定任意名字。
+
+ES6 模块与CJS模块的差异：
+        1. CJS模块输出时一个值的拷贝，ES6模块输出的是值的引用，
+        2. CJS模块是运行时加载，ES6 时编译时的输出接口，
+## ES6实现
+        使用Babel将ES6 代码编译为ES5代码，使用browserify 编译打包JS
+```js
+        // 1. 定义package.json 文件
+        {
+         "name" : "es6-babel-browserify",
+         "version" : "1.0.0"
+        }
+        // 2.安装babel-cli, babel-preset-es2015和browserify
+        npm install babel-cli browserify -g
+        npm install babel-preset-es2015 --save-dev
+        //3. 定义.babelrc文件
+        {
+                "presets": ["es2015"]
+        }
+        // 4.定义模块代码
+        //module1.js文件
+        // 分别暴露
+        export function foo() {
+                console.log('foo() module1')
+        }
+        export function bar() {
+                console.log('bar() module1')
+        }
+
+        //module2.js文件
+        // 统一暴露
+        function fun1() {
+                console.log('fun1() module2')
+        }
+        function fun2() {
+                console.log('fun2() module2')
+        }
+        export { fun1, fun2 }
+
+        //module3.js文件
+        // 默认暴露 可以暴露任意数据类项，暴露什么数据，接收到就是什么数据
+        export default () => {
+                console.log('默认暴露')
+        }
+
+        // app.js文件
+        import { foo, bar } from './module1'
+        import { fun1, fun2 } from './module2'
+        import module3 from './module3'
+        foo()
+        bar()
+        fun1()
+        fun2()
+        module3()
+        // 5.编译在index.html 中引入
+        // ● 使用Babel将ES6编译为ES5代码(但包含CommonJS语法) : babel js/src -d js/lib
+        // ● 使用Browserify编译js : browserify js/lib/app.js -o js/lib/bundle.js
+        // 然后在index.html文件中引入
+        <script type="text/javascript" src="js/lib/bundle.js"></script>
+        
+        // foo() module1
+        // bar() module1
+        // fun1() module2
+        // fun2() module2
+        // 默认暴露
+        // 引入第三方库
+        //app.js文件
+        import { foo, bar } from './module1'
+        import { fun1, fun2 } from './module2'
+        import module3 from './module3'
+        import $ from 'jquery'
+
+        foo()
+        bar()
+        fun1()
+        fun2()
+        module3()
+        $('body').css('background', 'green')
+
+```
+# 总结
+        1. CommonJS规范主要用于服务端编程，加载模块是同步的，这并不适合在浏览器环境，因为同步意味着阻塞加载，
+                浏览器资源是异步加载的，因此有了AMD CMD解决方案；
+        2. AMD规范在浏览器环境中异步加载模块，而且可以并行加载多个模块。不过，AMD规范开发成本高，代码的阅读和书写比较困难，
+                模块定义方式的语义不顺畅；
+        3. CMD规范与AMD规范很相似，都用于浏览器编程，依赖就近，延迟执行，可以很容易在Node.js中运行；
+        4. ES6 在语言标准的层面上，实现了模块功能，而且实现得相当简单，完全可以取代 CommonJS 和 AMD 规范，
+                成为浏览器和服务器通用的模块解决方案；
+        5. UMD为同时满足CommonJS, AMD, CMD标准的实现；
+        
