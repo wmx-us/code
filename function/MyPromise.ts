@@ -354,6 +354,7 @@ class MyPromise<T> {
   ): MyPromise<Array<PromiseSettledResult<T>>> {
     // 1. 接收一个Promise数组，数组中如有非Promise项，则此项当做成功；
     // 2. 把每一个Promise的结果，集合成数组后返回；
+    // allSettled方法接收一个promise对象数组，执行完毕不管成功与否都是返回promise的状态和结果。
     return new MyPromise((resolve) => {
       const results: Array<PromiseSettledResult<T>> = [];
       let count = 0;
@@ -397,7 +398,6 @@ class MyPromise<T> {
     });
   }
 }
-
 
 // 测试下
 const test3 = new MyPromise((res, rej) => {
